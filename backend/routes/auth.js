@@ -143,6 +143,8 @@ router.post("/google-login", async (req, res) => {
   }
 });
 
+import sendEmail from "../utils/sendEmail.js";
+
 // ================= FORGOT PASSWORD =================
 router.post("/forgot-password", async (req, res) => {
   const { email } = req.body;
@@ -168,17 +170,35 @@ router.post("/forgot-password", async (req, res) => {
 
     await user.save();
 
-    // 🚩 SIMULATED EMAIL SENDING
-    console.log("-----------------------------------------");
-    console.log("FORGOT PASSWORD TOKEN GENERATED");
-    console.log("Email:", email);
-    console.log("Token:", resetToken);
-    console.log("-----------------------------------------");
+    // Create reset URL (Frontend URL)
+    const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
 
-    res.status(200).json({
-      message: "Reset token generated",
-      resetToken, // Returning for dev purposes
-    });
+    const message = `You are receiving this email because you (or someone else) has requested the reset of a password. Please make a POST request to: \n\n ${resetUrl}`;
+
+    const html = `
+      <h1>Password Reset Request</h1>
+      <p>You are receiving this email because you (or someone else) has requested the reset of a password for your account.</p>
+      <p>Please click on the link below to reset your password:</p>
+      <a href="${resetUrl}" clicktracking=off>${resetUrl}</a>
+      <p>If you did not request this, please ignore this email and your password will remain unchanged.</p>
+    `;
+
+    try {
+      await sendEmail({
+        email: user.email,
+        subject: "Password Reset Token",
+        message,
+        html,
+      });
+
+      res.status(200).json({ message: "Email sent" });
+    } catch (err) {
+      console.error("Email could not be sent", err);
+      user.resetPasswordToken = null;
+      user.resetPasswordExpires = null;
+      await user.save();
+      return res.status(500).json({ message: "Email could not be sent" });
+    }
   } catch (error) {
     console.error("Forgot Password Error:", error);
     res.status(500).json({ message: "Server Error" });
