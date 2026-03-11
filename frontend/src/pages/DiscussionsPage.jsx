@@ -102,6 +102,8 @@ const DiscussionsPage = () => {
   const [globalCategory, setGlobalCategory] = useState("");
   const [expandedGlobalPost, setExpandedGlobalPost] = useState(null);
   const [globalReplyText, setGlobalReplyText] = useState("");
+  const [showGuidelinesModal, setShowGuidelinesModal] = useState(false);
+  const [showWelcomeBanner, setShowWelcomeBanner] = useState(true);
 
   const panelRef = useRef(null);
 
@@ -686,26 +688,39 @@ const DiscussionsPage = () => {
             <main className="flex-1 p-4 sm:p-6 overflow-y-auto">
               <div className="max-w-4xl mx-auto space-y-6">
                 {/* Welcome Banner */}
-                <div className="bg-linear-to-r from-red-900/30 to-orange-900/30 border border-orange-500/30 rounded-xl p-5">
-                  <div className="flex items-start gap-3">
-                    <div className="w-12 h-12 rounded-full bg-linear-to-br from-orange-500 to-red-500 flex items-center justify-center shrink-0">
-                      <Users className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-main text-lg">
-                        Welcome to Global Discussion!
-                      </h3>
-                      <p className="text-muted text-sm mt-1">
-                        Connect, share insights, find partners, and discuss
-                        anything globally.
-                      </p>
-                      <button className="mt-2 text-blue-400 hover:text-blue-300 text-sm flex items-center gap-1">
-                        <ArrowRight className="w-3 h-3" />
-                        Community Guidelines
-                      </button>
+                {showWelcomeBanner && (
+                  <div className="relative bg-linear-to-r from-red-900/30 to-orange-900/30 border border-orange-500/30 rounded-xl p-5">
+                    {/* Red dismiss X */}
+                    <button
+                      onClick={() => setShowWelcomeBanner(false)}
+                      title="Dismiss"
+                      className="absolute top-3 right-3 w-6 h-6 flex items-center justify-center rounded-full bg-red-600 hover:bg-red-500 text-white transition-colors shadow-md"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                    <div className="flex items-start gap-3">
+                      <div className="w-12 h-12 rounded-full bg-linear-to-br from-orange-500 to-red-500 flex items-center justify-center shrink-0">
+                        <Users className="w-6 h-6 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-main text-lg">
+                          Welcome to Global Discussion!
+                        </h3>
+                        <p className="text-muted text-sm mt-1">
+                          Connect, share insights, find partners, and discuss
+                          anything globally.
+                        </p>
+                        <button
+                          onClick={() => setShowGuidelinesModal(true)}
+                          className="mt-2 text-blue-400 hover:text-blue-300 text-sm flex items-center gap-1 transition-colors"
+                        >
+                          <ArrowRight className="w-3 h-3" />
+                          Community Guidelines
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
                 {/* Post Composer */}
                 <form
@@ -971,6 +986,98 @@ const DiscussionsPage = () => {
           )}
         </div>
       </div>
+
+      {/* ══════ COMMUNITY GUIDELINES MODAL ══════ */}
+      {showGuidelinesModal && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+          style={{ backgroundColor: "rgba(0,0,0,0.7)" }}
+          onClick={() => setShowGuidelinesModal(false)}
+        >
+          <div
+            className="relative bg-card border border-border rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-5 border-b border-border bg-gradient-to-r from-orange-900/40 to-red-900/40 rounded-t-2xl">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center shrink-0">
+                  <Users className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-main">Community Guidelines</h2>
+                  <p className="text-xs text-muted">Keep our community safe & respectful</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowGuidelinesModal(false)}
+                className="p-2 rounded-lg hover:bg-canvas-alt text-muted hover:text-main transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Guidelines List */}
+            <div className="p-5 space-y-4">
+              {[
+                {
+                  emoji: "🤝",
+                  title: "Be Respectful",
+                  desc: "Treat every member with kindness and courtesy. Personal attacks, insults, or harassment of any kind will not be tolerated.",
+                },
+                {
+                  emoji: "📚",
+                  title: "Stay On Topic",
+                  desc: "Keep discussions relevant to learning, courses, and educational growth. Off-topic spam disrupts the community experience.",
+                },
+                {
+                  emoji: "🔒",
+                  title: "Protect Privacy",
+                  desc: "Do not share personal information — yours or others'. Respect the privacy and confidentiality of all community members.",
+                },
+                {
+                  emoji: "🚫",
+                  title: "No Hate Speech or Discrimination",
+                  desc: "Content that promotes hate based on race, gender, religion, sexual orientation, or any other characteristic is strictly prohibited.",
+                },
+                {
+                  emoji: "💡",
+                  title: "Share Knowledge, Not Answers",
+                  desc: "Help others learn by guiding them, not doing their work for them. Academic dishonesty undermines everyone's education.",
+                },
+                {
+                  emoji: "⚠️",
+                  title: "Report Violations",
+                  desc: "If you see content that violates these guidelines, use the report button. Do not engage with or amplify harmful content.",
+                },
+                {
+                  emoji: "✅",
+                  title: "Constructive Feedback Only",
+                  desc: "Criticism should be constructive and helpful. Negative feedback without guidance or context adds no value to our community.",
+                },
+              ].map((item, idx) => (
+                <div key={idx} className="flex items-start gap-3 p-3 rounded-xl bg-canvas-alt border border-border hover:border-orange-500/30 transition-colors">
+                  <span className="text-xl shrink-0 mt-0.5">{item.emoji}</span>
+                  <div>
+                    <h3 className="text-sm font-semibold text-main">{item.title}</h3>
+                    <p className="text-xs text-muted mt-0.5 leading-relaxed">{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Footer */}
+            <div className="px-5 pb-5">
+              <button
+                onClick={() => setShowGuidelinesModal(false)}
+                className="w-full py-2.5 bg-gradient-to-r from-orange-500 to-red-500 text-white font-semibold rounded-xl hover:opacity-90 transition-opacity text-sm"
+              >
+                I Understand — Let's Discuss!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -4,14 +4,36 @@ import { useAuth } from "../context/AuthContext";
 import { ChevronRight, LogOut, Settings, User, ShieldCheck, LayoutGrid } from "lucide-react";
 import API_BASE_URL from "../lib/api";
 import { useSidebar } from "../context/SidebarContext";
+import { useToast } from "../context/ToastContext";
 
 const Sidebar = ({ activePage = "dashboard" }) => {
   const { sidebarOpen, setSidebarOpen, sidebarCollapsed, setSidebarCollapsed } = useSidebar();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [navigationItems, setNavigationItems] = useState([]);
   const [profilePopupOpen, setProfilePopupOpen] = useState(false);
   const profileRef = useRef(null);
+
+  // Emoji map keyed by nav item id / label keywords
+  const pageEmojiMap = {
+    dashboard:    "🏠",
+    courses:      "📚",
+    discussions:  "💬",
+    analytics:    "📊",
+    settings:     "⚙️",
+    watchedvideos:"🎬",
+    watched:      "🎬",
+    admin:        "🛡️",
+  };
+
+  const getEmojiForItem = (item) => {
+    const key = (item.id || item.label || "").toLowerCase().replace(/\s+/g, "");
+    for (const [k, emoji] of Object.entries(pageEmojiMap)) {
+      if (key.includes(k)) return emoji;
+    }
+    return "🔔";
+  };
 
   const handleLogout = () => {
     logout();
@@ -64,7 +86,10 @@ const Sidebar = ({ activePage = "dashboard" }) => {
             {navigationItems.map((item) => {
               const isActive = activePage === item.id;
               return (
-                <div key={item.id} onClick={() => navigate(item.path)} className={`group relative flex items-center px-4 py-4 rounded-[1.5rem] cursor-pointer transition-all duration-300 ${sidebarCollapsed ? "justify-center" : ""} ${isActive ? "bg-teal-500 text-white shadow-xl shadow-teal-500/30" : "text-muted hover:bg-canvas-alt"}`}>
+                <div key={item.id} onClick={() => {
+                  showToast(item.label, getEmojiForItem(item));
+                  navigate(item.path);
+                }} className={`group relative flex items-center px-4 py-4 rounded-[1.5rem] cursor-pointer transition-all duration-300 ${sidebarCollapsed ? "justify-center" : ""} ${isActive ? "bg-teal-500 text-white shadow-xl shadow-teal-500/30" : "text-muted hover:bg-canvas-alt"}`}>
                   <img src={item.icon} alt={item.label} className={`w-5 h-5 shrink-0 transition-transform group-hover:scale-110 ${isActive ? "brightness-0 invert" : ""}`} />
                   {!sidebarCollapsed && <span className={`ml-4 text-sm font-black uppercase tracking-tight ${isActive ? "text-white" : ""}`}>{item.label}</span>}
                   {sidebarCollapsed && (
