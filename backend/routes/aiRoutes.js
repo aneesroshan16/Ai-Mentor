@@ -15,7 +15,7 @@ const router = express.Router();
 
 router.post("/generate-video", protect, async (req, res) => {
   try {
-    const { courseId, lessonId, celebrity } = req.body;
+    const { courseId, lessonId, celebrity, learningStyle = "normal" } = req.body;
 
     if (!courseId || !lessonId || !celebrity) {
       return res.status(400).json({ message: "Missing required fields" });
@@ -36,6 +36,7 @@ router.post("/generate-video", protect, async (req, res) => {
         courseId: Number(courseId),
         lessonId: String(lessonId),
         celebrity: String(celebrity).toLowerCase(),
+        learningStyle: String(learningStyle).toLowerCase(),
       },
     });
 
@@ -87,6 +88,7 @@ router.post("/generate-video", protect, async (req, res) => {
           course: courseTitle,
           topic: lessonTitle,
           celebrity,
+          learning_style: learningStyle,
         }),
       }
     );
@@ -105,6 +107,7 @@ router.post("/generate-video", protect, async (req, res) => {
       courseId: Number(courseId),
       lessonId: String(lessonId),
       celebrity: String(celebrity).toLowerCase(),
+      learningStyle: String(learningStyle).toLowerCase(),
       videoUrl,
       transcriptName: text_file,
       jobId,

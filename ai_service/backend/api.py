@@ -54,6 +54,7 @@ class LessonRequest(BaseModel):
     course: str
     topic: str
     celebrity: str
+    learning_style: str = "normal"
 
 # --------------------------
 # Helpers
@@ -152,7 +153,19 @@ def process_lesson(data: LessonRequest, base_filename: str):
     try:
         print(f"\n🚀 Starting generation for: {data.topic} ({data.celebrity})")
 
-        # 1️⃣ Generate Text with detailed prompt
+        # Determine learning style instructions
+        style_instruction = ""
+        if data.learning_style.lower() == "keypoints":
+            style_instruction = "- CRITICAL: Act as a pure fact-sheet or cheat-sheet.\n- You MUST use EXACTLY 3 bullet points starting with a dash (-).\n- Format as: \n- [Crucial Fact 1]\n- [Crucial Fact 2]\n- [Crucial Fact 3]\n- Absolutely NO conversational text, NO intro, NO outro."
+        elif data.learning_style.lower() == "storyline":
+            style_instruction = "- CRITICAL: You MUST start the explanation with \"Once upon a time\" or \"Picture this:\".\n- Write it like a creative, dramatic story with a clear beginning, middle, and end.\n- Do NOT use bullet points or numbered lists."
+        elif data.learning_style.lower() == "analogy":
+            style_instruction = "- CRITICAL: You MUST start the explanation with \"Imagine it's like [insert everyday object/scenario]\".\n- Build the entire explanation around this single metaphor."
+        elif data.learning_style.lower() == "step-by-step":
+            style_instruction = "- CRITICAL: Act as an instruction manual.\n- You MUST write EXACTLY 3 actionable, sequential instructions. \n- Format strictly as:\nStep 1: [Action you must take to understand/do this]\nStep 2: [The next logical action]\nStep 3: [The final action]\n- Use imperative verbs (e.g., 'Take', 'Find', 'Calculate')."
+        else:
+            style_instruction = "- Provide a standard, academic paragraph explanation.\n- Do NOT use special formatting like bullet points, steps, or analogies."
+
         prompt = f"""
         Create a 50 word educational explanation about '{data.topic}' in the subject '{data.course}'.
 
@@ -162,6 +175,7 @@ def process_lesson(data: LessonRequest, base_filename: str):
         - No Hinglish
         - Simple classroom teaching tone
         - Between 45 and 60 words
+        {style_instruction}
 
         Narration style inspired by the celebrity {data.celebrity}.
         """
@@ -171,7 +185,7 @@ def process_lesson(data: LessonRequest, base_filename: str):
                 model="gemini-2.5-flash",
                 contents=prompt
             )
-            script = response.text.strip().replace("\n", " ")
+            script = response.text.strip()
             print(f"📝 Generated text: {script}")
         except Exception as e:
             print(f"❌ Gemini Error: {e}")
@@ -204,7 +218,7 @@ def process_lesson(data: LessonRequest, base_filename: str):
             if os.path.exists(audio_path):
                 os.remove(audio_path)
 
-            engine.save_to_file(script, audio_path)
+            engine.save_to_file(script.replace("\n", " "), audio_path)
             engine.runAndWait()
             engine.stop()
             print(f"✅ Audio saved: {audio_path}")

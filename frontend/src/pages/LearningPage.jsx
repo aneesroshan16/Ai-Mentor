@@ -53,6 +53,9 @@ export default function Learning() {
   const [celebritySearch, setCelebritySearch] = useState("");
   const [activeTab, setActiveTab] = useState("transcript");
   const [isCelebrityModalOpen, setIsCelebrityModalOpen] = useState(false);
+  const [learningStyle, setLearningStyle] = useState("normal");
+  const [tempCelebrity, setTempCelebrity] = useState(null);
+  const [tempLearningStyle, setTempLearningStyle] = useState("normal");
 
   // Captions state
   const [captions, setCaptions] = useState([]);
@@ -88,6 +91,7 @@ export default function Learning() {
   const modalRef = useRef(null);
   const lastLessonIdRef = useRef(null);
   const lastCelebrityRef = useRef(null);
+  const lastLearningStyleRef = useRef(null);
   const hasRestoredProgressRef = useRef(false);
 
   // Auto-scroll transcript to keep active caption visible
@@ -219,6 +223,10 @@ export default function Learning() {
                     setSelectedCelebrity(savedData.celebrity);
                     lastCelebrityRef.current = savedData.celebrity;
                   }
+                  if (savedData.learningStyle) {
+                    setLearningStyle(savedData.learningStyle);
+                    lastLearningStyleRef.current = savedData.learningStyle;
+                  }
                 }
 
                 setLearningData((prev) => ({
@@ -249,10 +257,22 @@ export default function Learning() {
 
     const generateFromText = (d) => {
       if (!generatedTextContent) return false;
-      const sentences = generatedTextContent
-        .split(/[.!?]+/)
-        .map(s => s.trim())
-        .filter(Boolean);
+      
+      let sentences = [];
+      if (learningStyle === "keypoints" || learningStyle === "step-by-step") {
+        sentences = generatedTextContent
+          .split('\n')
+          .map(s => s.trim())
+          .filter(Boolean);
+      } else {
+        const matches = generatedTextContent.match(/[^.!?]+[.!?]*/g);
+        if (matches) {
+          sentences = matches.map(s => s.trim()).filter(Boolean);
+        } else {
+          sentences = [generatedTextContent.trim()];
+        }
+      }
+
       if (!sentences.length) return false;
       const timePerSentence = d / sentences.length;
       setCaptions(sentences.map((text, i) => ({
@@ -326,7 +346,7 @@ export default function Learning() {
       return () => video.removeEventListener("loadedmetadata", handler);
     }
 
-  }, [selectedCelebrity, generatedTextContent, learningData?.currentLesson?.id]);
+  }, [selectedCelebrity, generatedTextContent, learningData?.currentLesson?.id, learningStyle]);
 
   useEffect(() => {
     const v = videoRef.current;
@@ -334,11 +354,13 @@ export default function Learning() {
 
     const lessonChanged = lastLessonIdRef.current !== learningData.currentLesson.id;
     const celebrityChanged = lastCelebrityRef.current !== selectedCelebrity;
+    const styleChanged = lastLearningStyleRef.current !== learningStyle;
 
-    if (!lessonChanged && !celebrityChanged && v.src) return;
+    if (!lessonChanged && !celebrityChanged && !styleChanged && v.src) return;
 
     lastLessonIdRef.current = learningData.currentLesson.id;
     lastCelebrityRef.current = selectedCelebrity;
+    lastLearningStyleRef.current = learningStyle;
 
     const loadVideo = async () => {
       setCaptions([]);
@@ -349,7 +371,7 @@ export default function Learning() {
           ?.find(c => c.courseId === parseInt(courseId))
           ?.progress?.lessonData?.[learningData.currentLesson.id];
 
-        const hasSavedMatchingContent = savedData?.celebrity === selectedCelebrity && savedData?.generatedTextContent;
+        const hasSavedMatchingContent = savedData?.celebrity === selectedCelebrity && savedData?.learningStyle === learningStyle && savedData?.generatedTextContent;
 
         if (hasSavedMatchingContent) {
           console.log("♻️ Using saved matching AI content, skipping fetch");
@@ -371,6 +393,7 @@ export default function Learning() {
             courseId: parseInt(courseId),
             lessonId: learningData.currentLesson.id,
             celebrity: selectedCelebrity.split(" ")[0].toLowerCase(),
+            learningStyle: learningStyle,
           };
 
           const data = await getAIVideo(payload);
@@ -433,6 +456,7 @@ export default function Learning() {
               generatedTextContent: data.textContent || "",
               aiVideoUrl: data.videoUrl,
               celebrity: selectedCelebrity,
+              learningStyle: learningStyle,
             });
           }
         } catch (error) {
@@ -454,7 +478,7 @@ export default function Learning() {
     };
 
     loadVideo();
-  }, [learningData?.currentLesson?.id, selectedCelebrity]);
+  }, [learningData?.currentLesson?.id, selectedCelebrity, learningStyle]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -966,7 +990,11 @@ export default function Learning() {
             <div className="flex items-center gap-3 w-full max-w-max ml-auto">
               {/* AI Celebrity Button */}
               <button
-                onClick={() => setIsCelebrityModalOpen(true)}
+                onClick={() => {
+                  setTempCelebrity(selectedCelebrity);
+                  setTempLearningStyle(learningStyle);
+                  setIsCelebrityModalOpen(true);
+                }}
                 className="flex items-center gap-2 px-4 py-2 bg-linear-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all shadow-sm hover:shadow-md"
               >
                 <Sparkles className="w-4 h-4" />
@@ -1032,32 +1060,30 @@ export default function Learning() {
                       <button
                         key={c}
                         onClick={() => {
-                          if (selectedCelebrity === c) {
-                            setSelectedCelebrity(null);
-                            setAiVideoUrl(null);
+                          if (tempCelebrity === c) {
+                            setTempCelebrity(null);
                           } else {
-                            setSelectedCelebrity(c);
+                            setTempCelebrity(c);
                           }
-                          setIsCelebrityModalOpen(false);
                         }}
-                        className={`w-full flex items-center justify-between p-3 rounded-lg transition-all ${selectedCelebrity === c
+                        className={`w-full flex items-center justify-between p-3 rounded-lg transition-all ${tempCelebrity === c
                           ? "bg-blue-600 text-white"
                           : "hover:bg-canvas-alt text-main border border-border"
                           }`}
                       >
                         <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${selectedCelebrity === c
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${tempCelebrity === c
                             ? "bg-white/20"
                             : "bg-blue-100 dark:bg-blue-900"
                             }`}>
-                            <User className={`w-4 h-4 ${selectedCelebrity === c
+                            <User className={`w-4 h-4 ${tempCelebrity === c
                               ? "text-white"
                               : "text-blue-600 dark:text-blue-400"
                               }`} />
                           </div>
                           <span className="font-medium">{c}</span>
                         </div>
-                        {selectedCelebrity === c && (
+                        {tempCelebrity === c && (
                           <Check className="w-4 h-4" />
                         )}
                       </button>
@@ -1065,19 +1091,35 @@ export default function Learning() {
                 </div>
 
                 {/* Current Selection Info */}
-                {selectedCelebrity && (
+                {tempCelebrity && (
                   <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
                     <div className="flex items-start gap-3">
                       <div className="p-1.5 bg-blue-100 dark:bg-blue-900 rounded-full">
                         <Check className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                       </div>
-                      <div>
+                      <div className="flex-1">
                         <p className="text-sm font-medium text-blue-800 dark:text-blue-300">
                           {t("learning.ai_voiceover_active")}
                         </p>
                         <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                          {t("learning.ai_celebrity_subtitle")} — <span className="font-semibold">{selectedCelebrity}</span>
+                          {t("learning.ai_celebrity_subtitle")} — <span className="font-semibold">{tempCelebrity}</span>
                         </p>
+                        <div className="mt-4 pt-4 border-t border-blue-200 dark:border-blue-800">
+                          <p className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-2">
+                            Learning Style
+                          </p>
+                          <select
+                            value={tempLearningStyle}
+                            onChange={(e) => setTempLearningStyle(e.target.value)}
+                            className="w-full p-2 bg-white dark:bg-gray-800 border border-blue-300 dark:border-blue-700 rounded-lg text-sm text-main focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          >
+                            <option value="normal">Normal</option>
+                            <option value="keypoints">Keypoints (Summary)</option>
+                            <option value="storyline">Storyline (Narrative)</option>
+                            <option value="analogy">Analogy (Metaphorical)</option>
+                            <option value="step-by-step">Step-by-step (Process)</option>
+                          </select>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1093,7 +1135,14 @@ export default function Learning() {
                   {t("common.cancel")}
                 </button>
                 <button
-                  onClick={() => setIsCelebrityModalOpen(false)}
+                  onClick={() => {
+                    if (selectedCelebrity !== tempCelebrity) {
+                      setAiVideoUrl(null);
+                    }
+                    setSelectedCelebrity(tempCelebrity);
+                    setLearningStyle(tempLearningStyle);
+                    setIsCelebrityModalOpen(false);
+                  }}
                   className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   Done
@@ -1163,9 +1212,9 @@ export default function Learning() {
                 </h1>
                 {(generatedTextContent || currentLesson?.content?.introduction) && (
                   <div className="prose prose-lg max-w-none">
-                    <p className="text-muted leading-relaxed">
+                    <div className="text-muted leading-relaxed whitespace-pre-wrap">
                       {generatedTextContent || currentLesson.content.introduction}
-                    </p>
+                    </div>
                   </div>
                 )}
               </div>

@@ -22,6 +22,11 @@ AIVideo.init(
             type: DataTypes.STRING,
             allowNull: false,
         },
+        learningStyle: {
+            type: DataTypes.STRING,
+            allowNull: false,
+            defaultValue: "normal",
+        },
         videoUrl: {
             type: DataTypes.STRING,
             allowNull: false,
@@ -46,7 +51,7 @@ AIVideo.init(
         indexes: [
             {
                 unique: true,
-                fields: ["courseId", "lessonId", "celebrity"],
+                fields: ["courseId", "lessonId", "celebrity", "learningStyle"],
             },
         ],
     }
